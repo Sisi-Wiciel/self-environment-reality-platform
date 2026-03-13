@@ -152,9 +152,70 @@ input:focus, textarea:focus, select:focus {
   border-color: #0f6f8f;
   box-shadow: 0 0 0 3px rgba(15, 111, 143, 0.14);
 }
-
+.task-status-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+.task-status-card {
+  background: #eef5f8;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.task-panel {
+  display: grid;
+  gap: 20px;
+}
+.stimulus-card {
+  background: #fbfdff;
+  border: 1px solid #dbe6ee;
+  border-radius: 18px;
+  padding: 24px;
+}
+.stimulus-card h2 {
+  margin: 8px 0 8px;
+  line-height: 1.35;
+}
+.stimulus-label {
+  color: #0f6f8f;
+  font-size: 13px;
+  font-weight: 700;
+}
+.rating-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+.rating-button, .primary-action {
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rating-button {
+  background: white;
+  border: 1px solid #cfdde7;
+  color: #173042;
+}
+.rating-button:hover {
+  background: #eef5f8;
+}
+.primary-action {
+  background: #0f6f8f;
+  color: white;
+  width: fit-content;
+}
+.success-card {
+  border-color: #bfe3de;
+  background: #f3fbfa;
+}
 @media (max-width: 960px) {
   .app-layout { grid-template-columns: 1fr; }
   .sidebar { position: relative; height: auto; }
-  .hero-block, .flow-grid, .task-grid, .preview-grid, .form-grid { grid-template-columns: 1fr; }
+  .hero-block, .flow-grid, .task-grid, .preview-grid, .form-grid, .task-status-row, .rating-grid { grid-template-columns: 1fr; }
 }
