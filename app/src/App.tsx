@@ -3,7 +3,9 @@ import type { ChangeEvent } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { selfRealityStimuli } from './data/taskSelfReality'
+import { environmentRealityStimuli } from './data/taskEnvironmentReality'
 import type { SelfRealityTrialRecord } from './types/task'
+import type { EnvironmentRealityTrialRecord } from './types/taskEnvironment'
 
 type SubjectForm = {
   subjectId: string
@@ -37,6 +39,7 @@ type TaskCardProps = {
 const SUBJECT_STORAGE_KEY = 'serap_subject_v1'
 const SCALE_STORAGE_KEY = 'serap_scales_v1'
 const SELF_REALITY_TRIALS_KEY = 'serap_self_reality_trials_v1'
+const ENVIRONMENT_REALITY_TRIALS_KEY = 'serap_environment_reality_trials_v1'
 
 const defaultSubjectForm: SubjectForm = {
   subjectId: '',
@@ -354,7 +357,114 @@ function SelfRealityTaskPage({
   )
 }
 
-function ResultsPage({ subjectForm, scaleForm, selfRealityTrials }: { subjectForm: SubjectForm; scaleForm: ScaleForm; selfRealityTrials: SelfRealityTrialRecord[] }) {
+function EnvironmentRealityTaskPage({
+  subjectId,
+  trials,
+  setTrials,
+}: {
+  subjectId: string
+  trials: EnvironmentRealityTrialRecord[]
+  setTrials: React.Dispatch<React.SetStateAction<EnvironmentRealityTrialRecord[]>>
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [startedAt, setStartedAt] = useState<number>(Date.now())
+  const [finished, setFinished] = useState(false)
+
+  const currentStimulus = environmentRealityStimuli[currentIndex]
+  const progress = `${Math.min(currentIndex + (finished ? 1 : 0), environmentRealityStimuli.length)} / ${environmentRealityStimuli.length}`
+
+  const handleRate = (rating: number) => {
+    if (!currentStimulus) return
+
+    const rt = Date.now() - startedAt
+    const record: EnvironmentRealityTrialRecord = {
+      subjectId: subjectId || 'UNASSIGNED',
+      taskName: 'environment-reality',
+      trialId: `trial_${currentIndex + 1}`,
+      condition: currentStimulus.condition,
+      stimulusId: currentStimulus.id,
+      stimulusTextZh: currentStimulus.textZh,
+      stimulusTextEn: currentStimulus.textEn,
+      rating,
+      rt,
+      answeredAt: new Date().toISOString(),
+    }
+
+    setTrials((prev) => {
+      const next = [...prev.filter((item) => item.trialId !== record.trialId), record]
+      return next.sort((a, b) => a.trialId.localeCompare(b.trialId))
+    })
+
+    if (currentIndex < environmentRealityStimuli.length - 1) {
+      setCurrentIndex((prev) => prev + 1)
+      setStartedAt(Date.now())
+    } else {
+      setFinished(true)
+    }
+  }
+
+  const handleRestart = () => {
+    setTrials([])
+    setCurrentIndex(0)
+    setStartedAt(Date.now())
+    setFinished(false)
+  }
+
+  return (
+    <div className="page-shell">
+      <section className="card form-card">
+        <SectionTitle
+          title="任务 2：环境真实感判断任务"
+          subtitle="请根据当前陈述与你真实体验的符合程度进行 1–7 分评分。1 = 完全不符合，7 = 非常符合。"
+        />
+
+        <div className="task-status-row">
+          <div className="task-status-card">
+            <span className="meta-label">当前被试</span>
+            <strong>{subjectId || '尚未填写被试编号'}</strong>
+          </div>
+          <div className="task-status-card">
+            <span className="meta-label">任务进度</span>
+            <strong>{progress}</strong>
+          </div>
+          <div className="task-status-card">
+            <span className="meta-label">已记录试次</span>
+            <strong>{trials.length}</strong>
+          </div>
+        </div>
+
+        {!finished && currentStimulus ? (
+          <div className="task-panel">
+            <div className="stimulus-card">
+              <div className="stimulus-label">当前陈述</div>
+              <h2>{currentStimulus.textZh}</h2>
+              <p className="muted">{currentStimulus.textEn}</p>
+            </div>
+            <div className="rating-grid">
+              {[1, 2, 3, 4, 5, 6, 7].map((score) => (
+                <button key={score} className="rating-button" onClick={() => handleRate(score)}>
+                  {score}
+                </button>
+              ))}
+            </div>
+            <div className="muted">1 = 完全不符合　·　7 = 非常符合</div>
+          </div>
+        ) : (
+          <div className="task-panel">
+            <div className="stimulus-card success-card">
+              <div className="stimulus-label">任务完成</div>
+              <h2>环境真实感判断任务已完成</h2>
+              <p className="muted">当前试次结果已保存到本地浏览器。后续将接入统一结果计算与导出模块。</p>
+            </div>
+            <button className="primary-action" onClick={handleRestart}>重新开始任务</button>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function ResultsPage({ subjectForm, scaleForm, selfRealityTrials, environmentRealityTrials }: { subjectForm: SubjectForm; scaleForm: ScaleForm; selfRealityTrials: SelfRealityTrialRecord[]; environmentRealityTrials: EnvironmentRealityTrialRecord[] }) {
   const completion = useMemo(() => {
     const subjectFilled = Object.values(subjectForm).filter(Boolean).length
     const scaleFilled = Object.values(scaleForm).filter(Boolean).length
@@ -386,6 +496,11 @@ function ResultsPage({ subjectForm, scaleForm, selfRealityTrials }: { subjectFor
             <p>{selfRealityTrials.length} / {selfRealityStimuli.length}</p>
             <p className="muted">已记录自我真实感判断任务试次</p>
           </div>
+          <div className="preview-card">
+            <h3>任务 2 完成情况</h3>
+            <p>{environmentRealityTrials.length} / {environmentRealityStimuli.length}</p>
+            <p className="muted">已记录环境真实感判断任务试次</p>
+          </div>
         </div>
       </section>
     </div>
@@ -405,6 +520,10 @@ function App() {
     const raw = localStorage.getItem(SELF_REALITY_TRIALS_KEY)
     return raw ? JSON.parse(raw) : []
   })
+  const [environmentRealityTrials, setEnvironmentRealityTrials] = useState<EnvironmentRealityTrialRecord[]>(() => {
+    const raw = localStorage.getItem(ENVIRONMENT_REALITY_TRIALS_KEY)
+    return raw ? JSON.parse(raw) : []
+  })
 
   useEffect(() => {
     localStorage.setItem(SUBJECT_STORAGE_KEY, JSON.stringify(subjectForm))
@@ -417,6 +536,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(SELF_REALITY_TRIALS_KEY, JSON.stringify(selfRealityTrials))
   }, [selfRealityTrials])
+
+  useEffect(() => {
+    localStorage.setItem(ENVIRONMENT_REALITY_TRIALS_KEY, JSON.stringify(environmentRealityTrials))
+  }, [environmentRealityTrials])
 
   return (
     <div className="app-layout">
@@ -448,9 +571,9 @@ function App() {
           <Route path="/subject" element={<SubjectPage form={subjectForm} setForm={setSubjectForm} />} />
           <Route path="/scales" element={<ScalesPage form={scaleForm} setForm={setScaleForm} />} />
           <Route path="/task/self-reality" element={<SelfRealityTaskPage subjectId={subjectForm.subjectId} trials={selfRealityTrials} setTrials={setSelfRealityTrials} />} />
-          <Route path="/task/environment-reality" element={<PlaceholderPage title="任务 2：环境真实感判断任务" desc="后续接入环境图片/语句刺激、真实感评分、环境疏离评分和反应时记录。" />} />
+          <Route path="/task/environment-reality" element={<EnvironmentRealityTaskPage subjectId={subjectForm.subjectId} trials={environmentRealityTrials} setTrials={setEnvironmentRealityTrials} />} />
           <Route path="/task/self-environment-match" element={<PlaceholderPage title="任务 3：自我—环境匹配任务" desc="后续接入自我状态描述与环境状态描述的配对呈现、匹配评分和冲突条件分析。" />} />
-          <Route path="/results" element={<ResultsPage subjectForm={subjectForm} scaleForm={scaleForm} selfRealityTrials={selfRealityTrials} />} />
+          <Route path="/results" element={<ResultsPage subjectForm={subjectForm} scaleForm={scaleForm} selfRealityTrials={selfRealityTrials} environmentRealityTrials={environmentRealityTrials} />} />
           <Route path="/export" element={<PlaceholderPage title="导出页" desc="后续导出 CSV、JSON，以及预留 EEG/fMRI event 文件。" />} />
           <Route path="/researcher" element={<PlaceholderPage title="研究者后台" desc="后续接入被试列表、任务条件配置、批量导出和基础数据质控模块。" />} />
         </Routes>
